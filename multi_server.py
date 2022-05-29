@@ -1,17 +1,11 @@
 # import socket module
 from socket import *
+from threading import Thread
+
 import sys # In order to terminate the program
-serverSocket = socket(AF_INET, SOCK_STREAM)
-#Prepare a sever socket
-serverPort = 12000
-serverIp = gethostname()
-print(gethostbyname(gethostname()))
-serverSocket.bind((gethostname(), serverPort))
-serverSocket.listen(1)
-while True:
-    #Establish the connection
-    print('Ready to serve...')
-    connectionSocket, addr = serverSocket.accept()
+
+def connector(connectionSocket):
+
     try:
 
         message = connectionSocket.recv(1024).decode()
@@ -34,5 +28,28 @@ while True:
         connectionSocket.send("HTTP/1.1 404 Not Found\r\n".encode())
         #Close client socket
         connectionSocket.close()
+
+
+serverSocket = socket(AF_INET, SOCK_STREAM)
+
+#Prepare a sever socket
+serverPort = 12000
+serverIp = gethostname()
+print(gethostbyname(gethostname()))
+serverSocket.bind((gethostname(), serverPort))
+serverSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # soketi yeniden kullan
+
+networkThreads=[]
+
+while True:
+    #Establish the connection
+    serverSocket.listen(10)  # maksimum bağlanabilecek client sayısı
+    print('Ready to serve...')
+    connectionSocket, addr = serverSocket.accept()
+    # Create a thread to service the received request
+    newThread = Thread(target=connector, args=(connectionSocket,))
+    newThread.start()
+    networkThreads.append(newThread)
+
 serverSocket.close()
 sys.exit()#Terminate the program after sending the corresponding data
